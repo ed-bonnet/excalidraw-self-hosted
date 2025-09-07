@@ -56,7 +56,7 @@ services:
       - MONGO_INITDB_ROOT_USERNAME=${DB_USER}
       - MONGO_INITDB_ROOT_PASSWORD=${DB_PASS}
     volumes:
-      - ${DB_VOLUME_PATH}:/data/db
+      - mongodb-data:/data/db
     networks:
       - draw-internal
     labels:
@@ -88,4 +88,9 @@ networks:
     external: true
   draw-internal:
     name: draw-internal
+    external: false
+
+volumes:
+  mongodb-data:
+    name: ${DB_VOLUME_PATH} 
     external: false
