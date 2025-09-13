@@ -13,7 +13,7 @@ services:
       - VITE_APP_DISABLE_TRACKING=true
       - PUBLIC_URL=https://${APP_HOST}
     networks:
-      - ${TRAEFIK_NETWORK_NAME}
+      - proxy
     labels:
       - "traefik.enable=true"
       # Changed router names and host rule from nextcloud to app with APP_HOST environment variable
@@ -29,7 +29,7 @@ services:
     environment:
       - STORAGE_URI=mongodb://${DB_USER}:${DB_PASS}@mongodb:27017
     networks:
-      - ${TRAEFIK_NETWORK_NAME}
+      - proxy
       - draw-internal
     labels:
       - "traefik.enable=true"
@@ -43,7 +43,7 @@ services:
     image: excalidraw/excalidraw-room:sha-49bf529
     restart: unless-stopped
     networks:
-      - ${TRAEFIK_NETWORK_NAME}      
+      - proxy      
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=${TRAEFIK_NETWORK_NAME}"
@@ -59,7 +59,7 @@ services:
       - MONGO_INITDB_ROOT_USERNAME=${DB_USER}
       - MONGO_INITDB_ROOT_PASSWORD=${DB_PASS}
     volumes:
-      - ${DB_VOLUME_PATH}:/data/db
+      - mongodb-data:/data/db
     networks:
       - draw-internal
     labels:
@@ -76,7 +76,7 @@ services:
       - mongodb
     restart: unless-stopped
     networks:
-      - ${TRAEFIK_NETWORK_NAME}
+      - proxy
       - draw-internal
     labels:
       - "traefik.enable=true"
@@ -92,4 +92,9 @@ networks:
     external: true
   draw-internal:
     name: draw-internal
+    external: false
+
+volumes:
+  mongodb-data:
+    name: ${DB_VOLUME_PATH} 
     external: false
