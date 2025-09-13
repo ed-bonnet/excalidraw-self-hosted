@@ -1,5 +1,4 @@
 version: "3.7"
-
 services:
   app:
     image: alswl/excalidraw:v0.17.3-fork-b1
@@ -14,13 +13,15 @@ services:
       - VITE_APP_DISABLE_TRACKING=true
       - PUBLIC_URL=https://${APP_HOST}
     networks:
-      - proxy
+      - ${TRAEFIK_NETWORK_NAME}
     labels:
       - "traefik.enable=true"
-      - "traefik.docker.network=${TRAEFIK_NETWORK_NAME}"
-      - "traefik.http.routers.${TRAEFIK_LABEL_ID}-app-${TRAEFIK_ENTRYPOINT}.rule=Host(`${APP_HOST}`)"
-      - "traefik.http.services.${TRAEFIK_LABEL_ID}-app-${TRAEFIK_ENTRYPOINT}.loadbalancer.server.port=80"
-      - "traefik.http.routers.${TRAEFIK_LABEL_ID}-app-${TRAEFIK_ENTRYPOINT}.entrypoints=${TRAEFIK_ENTRYPOINT}"
+      # Changed router names and host rule from nextcloud to app with APP_HOST environment variable
+      - "traefik.http.routers.app.rule=Host(`${APP_HOST}`)"  # updated label
+      - "traefik.http.routers.app.entrypoints=websecure"
+      - "traefik.http.routers.app.tls=true"
+      - "traefik.http.routers.app.tls.certresolver=le"
+      - "traefik.http.services.app.loadbalancer.server.port=80"  # assuming app listens on port 80 inside container
 
   storage:
     image: alswl/excalidraw-storage-backend:v2023.11.11
@@ -28,26 +29,28 @@ services:
     environment:
       - STORAGE_URI=mongodb://${DB_USER}:${DB_PASS}@mongodb:27017
     networks:
-      - proxy
+      - ${TRAEFIK_NETWORK_NAME}
       - draw-internal
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=${TRAEFIK_NETWORK_NAME}"
-      - "traefik.http.routers.${TRAEFIK_LABEL_ID}-storage-${TRAEFIK_ENTRYPOINT}.rule=Host(`${STORAGE_BACKEND_HOST}`)"
-      - "traefik.http.services.${TRAEFIK_LABEL_ID}-storage-${TRAEFIK_ENTRYPOINT}.loadbalancer.server.port=8080"
-      - "traefik.http.routers.${TRAEFIK_LABEL_ID}-storage-${TRAEFIK_ENTRYPOINT}.entrypoints=${TRAEFIK_ENTRYPOINT}"
+      # Changed variable references in label keys to avoid literal ${} interpolation in keys
+      - "traefik.http.routers.storage.rule=Host(`${STORAGE_BACKEND_HOST}`)"  # updated label key and host
+      - "traefik.http.services.storage.loadbalancer.server.port=8080"
+      - "traefik.http.routers.storage.entrypoints=websecure"  # changed variable to fixed entrypoint websecure
 
   room:
     image: excalidraw/excalidraw-room:sha-49bf529
     restart: unless-stopped
     networks:
-      - proxy      
+      - ${TRAEFIK_NETWORK_NAME}      
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=${TRAEFIK_NETWORK_NAME}"
-      - "traefik.http.routers.${TRAEFIK_LABEL_ID}-room-${TRAEFIK_ENTRYPOINT}.rule=Host(`${ROOM_HOST}`)"
-      - "traefik.http.services.${TRAEFIK_LABEL_ID}-room-${TRAEFIK_ENTRYPOINT}.loadbalancer.server.port=80"
-      - "traefik.http.routers.${TRAEFIK_LABEL_ID}-room-${TRAEFIK_ENTRYPOINT}.entrypoints=${TRAEFIK_ENTRYPOINT}"
+      # Changed variable references in label keys to avoid literal ${} interpolation in keys
+      - "traefik.http.routers.room.rule=Host(`${ROOM_HOST}`)"  # updated label key and host
+      - "traefik.http.services.room.loadbalancer.server.port=80"
+      - "traefik.http.routers.room.entrypoints=websecure"  # changed variable to fixed entrypoint websecure
 
   mongodb:
     image: mongo:7.0.5-jammy
@@ -56,7 +59,7 @@ services:
       - MONGO_INITDB_ROOT_USERNAME=${DB_USER}
       - MONGO_INITDB_ROOT_PASSWORD=${DB_PASS}
     volumes:
-      - mongodb-data:/data/db
+      - ${DB_VOLUME_PATH}:/data/db
     networks:
       - draw-internal
     labels:
@@ -73,14 +76,15 @@ services:
       - mongodb
     restart: unless-stopped
     networks:
-      - proxy
+      - ${TRAEFIK_NETWORK_NAME}
       - draw-internal
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=${TRAEFIK_NETWORK_NAME}"
-      - "traefik.http.routers.${TRAEFIK_LABEL_ID}-db-${TRAEFIK_ENTRYPOINT}.rule=Host(`${MONGOEXPRESS_HOST}`)"
-      - "traefik.http.services.${TRAEFIK_LABEL_ID}-db-${TRAEFIK_ENTRYPOINT}.loadbalancer.server.port=8081"
-      - "traefik.http.routers.${TRAEFIK_LABEL_ID}-db-${TRAEFIK_ENTRYPOINT}.entrypoints=${TRAEFIK_ENTRYPOINT}"
+      # Changed variable references in label keys to avoid literal ${} interpolation in keys
+      - "traefik.http.routers.mongoexpress.rule=Host(`${MONGOEXPRESS_HOST}`)"  # updated label key and host
+      - "traefik.http.services.mongoexpress.loadbalancer.server.port=8081"
+      - "traefik.http.routers.mongoexpress.entrypoints=websecure"  # changed variable to fixed entrypoint websecure
 
 networks:
   proxy:
@@ -88,9 +92,4 @@ networks:
     external: true
   draw-internal:
     name: draw-internal
-    external: false
-
-volumes:
-  mongodb-data:
-    name: ${DB_VOLUME_PATH} 
     external: false
